@@ -2,7 +2,11 @@
 # SQLAlchemy Imports
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import column_property
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import (
+    Column,
+    String,
+    Integer,
+    )
 
 # Eve imports
 from eve import Eve
@@ -27,7 +31,6 @@ class People(Base):
         """Helper method to populate the db"""
         return cls(firstname=data[0], lastname=data[1])
 
-
 registerSchema('people')(People)
 
 SETTINGS = {
@@ -35,7 +38,7 @@ SETTINGS = {
     'SQLALCHEMY_DATABASE_URI': 'sqlite://',
     'DOMAIN': {
         'people': People._eve_schema['people'],
-    }
+        }
 }
 
 app = Eve(auth=None, settings=SETTINGS, validator=ValidatorSQL, data=SQL)

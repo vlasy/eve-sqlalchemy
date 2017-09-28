@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
 
 import random
 import os
@@ -10,7 +9,7 @@ from unittest import TestCase
 from sqlalchemy.sql.elements import BooleanClauseList
 from operator import and_, or_
 from eve.utils import str_to_date
-from eve_sqlalchemy.tests.test_sql_tables import Contacts
+from eve_sqlalchemy.tests.test_sql_tables import People
 from eve_sqlalchemy.parser import parse
 from eve_sqlalchemy.parser import parse_dictionary
 from eve_sqlalchemy.parser import parse_sorting
@@ -24,14 +23,14 @@ from eve_sqlalchemy import SQL
 class TestSQLParser(TestCase):
 
     def setUp(self):
-        self.model = Contacts
+        self.model = People
 
     def test_wrong_attribute(self):
         self.assertRaises(AttributeError, parse, 'a == 1', self.model)
 
     def test_eq(self):
-        expected_expression = sqla_op.eq(self.model.username, 'john')
-        r = parse('username == john', self.model)
+        expected_expression = sqla_op.eq(self.model.firstname, 'john')
+        r = parse('firstname == john', self.model)
         self.assertEqual(type(r), list)
         self.assertTrue(len(r) == 1)
         self.assertTrue(expected_expression.compare(r[0]))
@@ -72,35 +71,35 @@ class TestSQLParser(TestCase):
         self.assertTrue(expected_expression.compare(r[0]))
 
     def test_and_bool_op(self):
-        r = parse('username == "john" and prog == 5', self.model)
+        r = parse('firstname == "john" and prog == 5', self.model)
         self.assertEqual(type(r), list)
         self.assertEqual(type(r[0]), BooleanClauseList)
         self.assertEqual(r[0].operator, and_)
         self.assertEqual(len(r[0].clauses), 2)
-        expected_expression = sqla_op.eq(self.model.username, 'john')
+        expected_expression = sqla_op.eq(self.model.firstname, 'john')
         self.assertTrue(expected_expression.compare(r[0].clauses[0]))
         expected_expression = sqla_op.eq(self.model.prog, 5)
         self.assertTrue(expected_expression.compare(r[0].clauses[1]))
 
     def test_or_bool_op(self):
-        r = parse('username == "john" or prog == 5', self.model)
+        r = parse('firstname == "john" or prog == 5', self.model)
         self.assertEqual(type(r), list)
         self.assertEqual(type(r[0]), BooleanClauseList)
         self.assertEqual(r[0].operator, or_)
         self.assertEqual(len(r[0].clauses), 2)
-        expected_expression = sqla_op.eq(self.model.username, 'john')
+        expected_expression = sqla_op.eq(self.model.firstname, 'john')
         self.assertTrue(expected_expression.compare(r[0].clauses[0]))
         expected_expression = sqla_op.eq(self.model.prog, 5)
         self.assertTrue(expected_expression.compare(r[0].clauses[1]))
 
     def test_nested_bool_op(self):
-        r = parse('username == "john" or (prog == 5 and ref == "smith")',
+        r = parse('firstname == "john" or (prog == 5 and lastname == "smith")',
                   self.model)
         self.assertEqual(type(r), list)
         self.assertEqual(type(r[0]), BooleanClauseList)
         self.assertEqual(r[0].operator, or_)
         self.assertEqual(len(r[0].clauses), 2)
-        expected_expression = sqla_op.eq(self.model.username, 'john')
+        expected_expression = sqla_op.eq(self.model.firstname, 'john')
         self.assertTrue(expected_expression.compare(r[0].clauses[0]))
         second_op = r[0].clauses[1]
         self.assertEqual(type(second_op), BooleanClauseList)
@@ -108,15 +107,15 @@ class TestSQLParser(TestCase):
         self.assertEqual(len(second_op.clauses), 2)
         expected_expression = sqla_op.eq(self.model.prog, 5)
         self.assertTrue(expected_expression.compare(second_op.clauses[0]))
-        expected_expression = sqla_op.eq(self.model.ref, 'smith')
+        expected_expression = sqla_op.eq(self.model.lastname, 'smith')
         self.assertTrue(expected_expression.compare(second_op.clauses[1]))
 
     def test_raises_parse_error_for_invalid_queries(self):
         self.assertRaises(ParseError, parse, '', self.model)
-        self.assertRaises(ParseError, parse, 'username', self.model)
+        self.assertRaises(ParseError, parse, 'firstname', self.model)
 
     def test_raises_parse_error_for_invalid_op(self):
-        self.assertRaises(ParseError, parse, 'username | "john"', self.model)
+        self.assertRaises(ParseError, parse, 'firstname | "john"', self.model)
 
     def test_parse_string_to_date(self):
         expected_expression = \
@@ -128,77 +127,77 @@ class TestSQLParser(TestCase):
         self.assertTrue(expected_expression.compare(r[0]))
 
     def test_parse_dictionary(self):
-        r = parse_dictionary({'username': 'john', 'prog': '!= 5'}, self.model)
+        r = parse_dictionary({'firstname': 'john', 'prog': 5}, self.model)
         self.assertEqual(type(r), list)
         self.assertTrue(len(r) == 2)
-        expected_expression = sqla_op.eq(self.model.username, 'john')
+        expected_expression = sqla_op.eq(self.model.firstname, 'john')
         any_true = any(expected_expression.compare(elem) for elem in r)
         self.assertTrue(any_true)
-        expected_expression = sqla_op.ne(self.model.prog, 5)
+        expected_expression = sqla_op.eq(self.model.prog, 5)
         any_true = any(expected_expression.compare(elem) for elem in r)
         self.assertTrue(any_true)
 
     def test_parse_adv_dictionary(self):
-        r = parse_dictionary({'username': ['john', 'dylan']}, self.model)
+        r = parse_dictionary({'firstname': ['john', 'dylan']}, self.model)
         self.assertEqual(str(r[0]),
-                         'contacts.username IN (:username_1, :username_2)')
+                         'people.firstname IN (:firstname_1, :firstname_2)')
 
     def test_parse_sqla_operators(self):
-        r = parse_dictionary({'username': 'ilike("john%")'}, self.model)
+        r = parse_dictionary({'firstname': 'ilike("john%")'}, self.model)
         self.assertEqual(str(r[0]),
-                         'lower(contacts.username) LIKE lower(:username_1)')
+                         'lower(people.firstname) LIKE lower(:firstname_1)')
 
-        r = parse_dictionary({'username': 'like("john%")'}, self.model)
+        r = parse_dictionary({'firstname': 'like("john%")'}, self.model)
         self.assertEqual(str(r[0]),
-                         'contacts.username LIKE :username_1')
+                         'people.firstname LIKE :firstname_1')
 
-        r = parse_dictionary({'username': 'in("(\'john\',\'mark\')")'},
+        r = parse_dictionary({'firstname': 'in("(\'john\',\'mark\')")'},
                              self.model)
         self.assertEqual(str(r[0]),
-                         'contacts.username in :username_1')
+                         'people.firstname in :firstname_1')
         self.assertEqual(r[0].right.value,
                          "('john','mark')")
 
-        r = parse_dictionary({'username': 'similar to("(\'john%\'|\'mark%\')")'},
+        r = parse_dictionary({'firstname': 'similar to("(\'john%\'|\'mark%\')")'},
                              self.model)
         self.assertEqual(str(r[0]),
-                         'contacts.username similar to :username_1')
+                         'people.firstname similar to :firstname_1')
         self.assertEqual(r[0].right.value,
                          "('john%'|'mark%')")
 
     def test_parse_sqla_and_or_conjunctions(self):
         r = parse_dictionary(
-            {'or_': '[{"username": "john"}, {"and_": ['
-             '{"username": "dylan"},{"ref": "smith"}]}]'}, self.model)
+            {'or_': '[{"firstname": "john"}, {"and_": ['
+             '{"firstname": "dylan"},{"lastname": "smith"}]}]'}, self.model)
         self.assertEqual(str(r[0]),
-                         'contacts.username = :username_1 OR '
-                         'contacts.username = :username_2 AND '
-                         'contacts.ref = :ref_1')
+                         'people.firstname = :firstname_1 OR '
+                         'people.firstname = :firstname_2 AND '
+                         'people.lastname = :lastname_1')
         self.assertEqual(type(r), list)
         self.assertEqual(type(r[0]), BooleanClauseList)
         self.assertEqual(r[0].operator, or_)
         self.assertEqual(len(r[0].clauses), 2)
-        expected_expression = sqla_op.eq(self.model.username, 'john')
+        expected_expression = sqla_op.eq(self.model.firstname, 'john')
         self.assertTrue(expected_expression.compare(r[0].clauses[0]))
         second_op = r[0].clauses[1]
         self.assertEqual(type(second_op), BooleanClauseList)
         self.assertEqual(second_op.operator, and_)
         self.assertEqual(len(second_op.clauses), 2)
-        expected_expression = sqla_op.eq(self.model.username, 'dylan')
+        expected_expression = sqla_op.eq(self.model.firstname, 'dylan')
         self.assertTrue(expected_expression.compare(second_op.clauses[0]))
-        expected_expression = sqla_op.eq(self.model.ref, 'smith')
+        expected_expression = sqla_op.eq(self.model.lastname, 'smith')
         self.assertTrue(expected_expression.compare(second_op.clauses[1]))
 
 
 class TestSQLStructures(TestCase):
 
     def setUp(self):
-        self.person = Contacts(username='douglas', prog=5,
-                               _id=1, _updated=datetime.now(),
-                               _created=datetime.now())
+        self.person = People(firstname='douglas', lastname='adams', prog=5,
+                             _id=1, _updated=datetime.now(),
+                             _created=datetime.now())
 
-        self.fields = ['_id', '_updated', '_created', 'username', 'prog',
-                       '_etag']
+        self.fields = ['_id', '_updated', '_created', 'firstname', 'lastname',
+                       'prog', '_etag']
         self.known_resource_count = 101
         self.max_results = 25
 
@@ -221,47 +220,47 @@ class TestSQLStructures(TestCase):
     def test_base_sorting(self):
         self.setupDB()
         self.assertEqual(str(
-            parse_sorting(Contacts, self.query, 'username', -1)).lower(),
-            'contacts.username desc')
+            parse_sorting(People, self.query, 'lastname', -1)).lower(),
+            'people.lastname desc')
         self.assertEqual(str(
-            parse_sorting(Contacts, self.query, 'username', 1)).lower(),
-            'contacts.username')
+            parse_sorting(People, self.query, 'lastname', 1)).lower(),
+            'people.lastname')
         self.assertEqual(str(
-            parse_sorting(Contacts, self.query, 'username', -1, 'nullslast')).lower(),
-            'contacts.username desc nulls last')
+            parse_sorting(People, self.query, 'lastname', -1, 'nullslast')).lower(),
+            'people.lastname desc nulls last')
         self.assertEqual(str(
-            parse_sorting(Contacts, self.query, 'username', -1, 'nullsfirst')).lower(),
-            'contacts.username desc nulls first')
+            parse_sorting(People, self.query, 'lastname', -1, 'nullsfirst')).lower(),
+            'people.lastname desc nulls first')
 
     def setupDB(self):
         self.this_directory = os.path.dirname(os.path.realpath(__file__))
         self.settings_file = os.path.join(self.this_directory,
-                                          'test_settings.py')
+                                          'test_settings_sql.py')
         self.app = eve.Eve(settings=self.settings_file, data=SQL)
         self.connection = SQL.driver
         self.connection.drop_all()
         self.connection.create_all()
         self.bulk_insert()
-        self.query = self.connection.session.query(Contacts)
+        self.query = self.connection.session.query(People)
 
     def bulk_insert(self):
-        if not self.connection.session.query(Contacts).count():
-            # load random contacts in db
-            contacts = self.random_contacts(self.known_resource_count)
-            self.connection.session.add_all(contacts)
+        if not self.connection.session.query(People).count():
+            # load random people in db
+            people = self.random_people(self.known_resource_count)
+            people = [People.from_tuple(item) for item in people]
+            for person in people:
+                self.connection.session.add(person)
             self.connection.session.commit()
 
     def random_string(self, length=6):
         return ''.join(random.choice(string.ascii_lowercase)
                        for _ in range(length)).capitalize()
 
-    def random_contacts(self, num):
-        contacts = []
+    def random_people(self, num):
+        people = []
         for i in range(num):
-            contacts.append(Contacts(username=self.random_string(6),
-                                     ref=self.random_string(25),
-                                     prog=i))
-        return contacts
+            people.append((self.random_string(6), self.random_string(6), i))
+        return people
 
     def dropDB(self):
         self.connection = SQL.driver

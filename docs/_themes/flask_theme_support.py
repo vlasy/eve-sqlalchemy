@@ -1,5 +1,3 @@
-# flake8: noqa
-
 # flasky extensions.  flasky pygments style based on tango style
 from pygments.style import Style
 from pygments.token import Keyword

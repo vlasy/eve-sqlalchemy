@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+
+import eve_sqlalchemy.validation
+from eve_sqlalchemy.tests.test_settings_sql import DOMAIN
+from eve.utils import config
 
 import unittest
-import eve_sqlalchemy.validation
-from eve_sqlalchemy.tests.test_settings import DOMAIN
-from eve.utils import config
 
 
 class TestValidator(unittest.TestCase):
@@ -15,11 +15,11 @@ class TestValidator(unittest.TestCase):
             },
         }
         # This is usually set in a users' app
-        DOMAIN['contacts'].update({
+        DOMAIN['people'].update({
             'allow_unknown': True,
         })
         config.DOMAIN = DOMAIN
-        self.validator = eve_sqlalchemy.validation.ValidatorSQL(schemas, resource='contacts')
+        self.validator = eve_sqlalchemy.validation.ValidatorSQL(schemas, resource='people')
 
     def test_allow_unknown_true(self):
         self.assertTrue(self.validator.allow_unknown)

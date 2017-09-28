@@ -4,6 +4,7 @@
     It has no dependency on flask or eve iself. Pure sqlalchemy.
 """
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import column_property, relationship
 from sqlalchemy import func
 from sqlalchemy import (
@@ -21,6 +22,13 @@ class CommonColumns(Base):
     _created = Column(DateTime, default=func.now())
     _updated = Column(DateTime, default=func.now(), onupdate=func.now())
     _etag = Column(String(40))
+
+    @hybrid_property
+    def _id(self):
+        """
+        Eve backward compatibility
+        """
+        return self.id
 
 
 class People(CommonColumns):
